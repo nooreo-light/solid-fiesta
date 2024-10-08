@@ -1,0 +1,238 @@
+package Project1;
+import java.util.Random;
+import java.util.Scanner;
+
+public class CandyCrush {
+    private static final char EMPTY_CELL = '\u0000';
+    private static final char MARKED_CELL = '*';
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        // Get user input for grid size and number of tile types
+        int numRows = getUserInput(scanner, "Enter the number of rows:");
+        int numCols = getUserInput(scanner, "Enter the number of columns:");
+        int numTileTypes = getUserInput(scanner, "Enter the number of types:");
+
+        // Initialize the grid
+        char[][] grid = new char[numRows][numCols];
+
+        Random rand = new Random();
+        boolean gameOver = false;
+
+        // Main game loop
+        while (!gameOver) {
+            // Generate and display the next tile
+            char currentTile = generateTile(numTileTypes);
+            System.out.println("Next Tile: " + currentTile);
+
+            // Display the grid
+            System.out.print(" ");
+            for (int i = 1; i <= numCols; i++) {
+                System.out.print(i + " ");
+            }
+            System.out.println();
+            displayGrid(grid);
+
+            // Get user input for column choice
+            int column = getColumnChoice(scanner, numCols);
+
+            // Find the empty row in the chosen column and place the tile
+            int row = findEmptyRow(grid, column);
+            if (row == -1) {
+                System.out.println("Column is full. Game over!");
+                gameOver = true;
+                break;
+            }
+            grid[row][column] = currentTile;
+
+            // Handle sets and slide tiles
+            handleTileSets(grid, scanner);
+
+            // Check if the grid is full
+            if (isGridFull(grid)) {
+                System.out.println("GAME OVER");
+                gameOver = true;
+            }
+        }
+        scanner.close();
+    }
+
+    // Helper method to get user input
+    private static int getUserInput(Scanner scanner, String prompt) {
+        System.out.println(prompt);
+        return scanner.nextInt();
+    }
+
+    // Helper method to generate a random tile
+    private static char generateTile(int numTileTypes) {
+        Random rand = new Random();
+        return (char) ('A' + rand.nextInt(numTileTypes));
+    }
+
+    // Helper method to display the grid
+    private static void displayGrid(char[][] grid) {
+        for (int i = 0; i < grid.length; i++) {
+            System.out.print("|");
+            for (int j = 0; j < grid[0].length; j++) {
+                if (grid[i][j] == EMPTY_CELL) {
+                    System.out.print(" |");
+                } else {
+                    System.out.print(grid[i][j] + "|");
+                }
+            }
+            System.out.println();
+        }
+    }
+
+    // Helper method to get user input for column choice
+    private static int getColumnChoice(Scanner scanner, int numCols) {
+        int column = 0;
+        boolean validInput = false;
+        while (!validInput) {
+            System.out.println("Enter the column:");
+            column = scanner.nextInt() - 1;
+            scanner.nextLine();
+            if (column >= 0 && column < numCols) {
+                validInput = true;
+            } else {
+                System.out.println("Invalid column choice. Please choose again.");
+            }
+        }
+        return column;
+    }
+
+    // Helper method to find the empty row in a column
+    private static int findEmptyRow(char[][] grid, int column) {
+        int row = grid.length - 1;
+        while (row >= 0 && grid[row][column] != EMPTY_CELL) {
+            row--;
+        }
+        return row;
+    }
+
+    // Helper method to handle sets and slide tiles
+    private static void handleTileSets(char[][] grid, Scanner scanner) {
+        boolean setsFound;
+        do {
+            // Mark sets of three or more consecutive tiles with MARKED_CELL
+            replaceSets(grid);
+            // Display the grid after marking sets
+            System.out.print(" ");
+            for (int i = 1; i <= grid[0].length; i++) {
+                System.out.print(i + " ");
+            }
+            System.out.println();
+            displayGrid(grid);
+            // Check if sets were found
+            setsFound = checkSets(grid);
+            if (setsFound) {
+                // Prompt the user to continue
+                System.out.println("You made a set! Enter any word to continue.");
+                scanner.nextLine(); // Wait for user input to continue
+            }
+            // Slide tiles down and remove marked cells
+            slideAndRemove(grid);
+        } while (setsFound);
+    }
+
+    // Helper method to check for sets in the grid
+    private static boolean checkSets(char[][] grid) {
+        return checkHorizontalSets(grid) || checkVerticalSets(grid);
+    }
+
+    // Helper method to check for horizontal sets in the grid
+    private static boolean checkHorizontalSets(char[][] grid) {
+        for (int i = 0; i < grid.length; i++) {
+            for (int j = 0; j < grid[0].length - 2; j++) {
+                if (grid[i][j] != EMPTY_CELL && grid[i][j] == grid[i][j + 1] && grid[i][j] == grid[i][j + 2]) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // Helper method to check for vertical sets in the grid
+    private static boolean checkVerticalSets(char[][] grid) {
+        for (int j = 0; j < grid[0].length; j++) {
+            for (int i = 0; i < grid.length - 2; i++) {
+                if (grid[i][j] != EMPTY_CELL && grid[i][j] == grid[i + 1][j] && grid[i][j] == grid[i + 2][j]) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // Helper method to mark sets of three or more consecutive tiles with MARKED_CELL
+    private static void replaceSets(char[][] grid) {
+        for (int i = 0; i < grid.length; i++) {
+            for (int j = 0; j < grid[0].length; j++) {
+                if (grid[i][j] != EMPTY_CELL) {
+                    char currentTile = grid[i][j];
+                    
+                    // Check horizontal sets
+                    int count = 1;
+                    for (int k = j + 1; k < grid[0].length; k++) {
+                        if (grid[i][k] == currentTile) {
+                            count++;
+                        } else {
+                            break;
+                        }
+                    }
+                    if (count >= 3) {
+                        for (int k = j; k < j + count; k++) {
+                            grid[i][k] = MARKED_CELL;
+                        }
+                    }
+                    
+                    // Check vertical sets
+                    count = 1;
+                    for (int k = i + 1; k < grid.length; k++) {
+                        if (grid[k][j] == currentTile) {
+                            count++;
+                        } else {
+                            break;
+                        }
+                    }
+                    if (count >= 3) {
+                        for (int k = i; k < i + count; k++) {
+                            grid[k][j] = MARKED_CELL;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Helper method to slide tiles down and remove marked cells
+    private static void slideAndRemove(char[][] grid) {
+        for (int j = 0; j < grid[0].length; j++) {
+            int k = grid.length - 1;
+            for (int i = grid.length - 1; i >= 0; i--) {
+                if (grid[i][j] != MARKED_CELL) {
+                    grid[k][j] = grid[i][j];
+                    k--;
+                }
+            }
+            // Fill the remaining cells above k with EMPTY_CELL
+            while (k >= 0) {
+                grid[k][j] = EMPTY_CELL;
+                k--;
+            }
+        }
+    }
+
+    // Helper method to check if the grid is full
+    private static boolean isGridFull(char[][] grid) {
+        for (char[] rowArray : grid) {
+            for (char cell : rowArray) {
+                if (cell == EMPTY_CELL) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+}
